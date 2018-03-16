@@ -38,18 +38,14 @@ int crackChrome(const string &path) {
     }
 
     short searchFor[] = {
-            0x4c, 0x89, 0xe0, //mov rax, r12
-            0x48, 0x81, 0xc4, 0x80, 0x00, 0x00, 0x00, // add rsp, 80
-            0x5b, // pop rbx
-            0x5f, // pop rdi
-            0x5e, // pop rsi
-            0x41, 0x5c, // pop r12
-            0x41, 0x5d, // pop r13
-            0x41, 0x5e, // pop r14
-            0x41, 0x5f, // pop r15
             0xc3, // ret
             0xe8, -1, -1, -1, -1, // call chrome.xxxxxxxxxxxx
             0x83, 0xf8, -1, //cmp eax, xx
+            0x0f, -1, -1, -1, -1, -1, //jg chrome.xxxxxxxxxxxx
+            0x83, 0x3d, -1, -1, -1, -1, 0x01, // cmp dword ptr ds:[xxxx], 1
+            0x0f, -1, -1, -1, -1, -1, // je chrome.xxxxxxxxxxxx
+            0xe8, -1, -1, -1, -1, // call chrome.xxxxxxxxxxxx
+            0x48, -1, -1, //mov xxx, xxx
     };
     const unsigned char PatchTarget[] = {0x7f};
     const unsigned int PatchTargetLen = sizeof(PatchTarget) / sizeof(PatchTarget[0]);
@@ -63,7 +59,7 @@ int crackChrome(const string &path) {
     if (searchIdx != -1) {
         // Make sure just one pattern matched.
         if (indexOfData(byteData, fileSize, searchFor, searchLen, (unsigned int) searchIdx + 1) >= 0)
-            searchIdx = -1;
+            searchIdx = -9;
     }
 
     delete[] byteData;
@@ -71,6 +67,9 @@ int crackChrome(const string &path) {
     if (searchIdx == -1) {
         cerr << "Pattern not found" << endl;
         return -1;
+    } else if (searchIdx == -9) {
+        cerr << "Pattern too many" << endl;
+        return -9;
     } else {
 
         cout << "Find pattern at 0x" << flush;
@@ -86,7 +85,7 @@ int crackChrome(const string &path) {
             return -3;
         }
 
-        fseek(target, (long) (searchIdx + searchLen - 1), SEEK_SET);
+        fseek(target, (long) (searchIdx + 8), SEEK_SET);
         if (fwrite(PatchTarget, sizeof(PatchTarget[0]), PatchTargetLen, target) <= 0) {
             showError();
             fclose(target);
