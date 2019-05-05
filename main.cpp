@@ -38,14 +38,12 @@ int crackChrome(const string &path) {
     }
 
     short searchFor[] = {
-            0xc3, // ret
-            0xe8, -1, -1, -1, -1, // call chrome.xxxxxxxxxxxx
-            0x83, 0xf8, -1, //cmp eax, xx
-            0x0f, -1, -1, -1, -1, -1, //jg chrome.xxxxxxxxxxxx
-            0x83, 0x3d, -1, -1, -1, -1, 0x01, // cmp dword ptr ds:[xxxx], 1
-            0x0f, -1, -1, -1, -1, -1, // je chrome.xxxxxxxxxxxx
-            0xe8, -1, -1, -1, -1, // call chrome.xxxxxxxxxxxx
-            0x48, -1, -1, //mov xxx, xxx
+            0x84, 0xc0, // test al,al
+            0x75, -1, // jne chrome.xxx
+            0xe8, -1, -1, -1, -1, // call chrome.xxx
+            0x83, 0xf8, -1, // cmp eax, 2|3 ***
+            0x7f, -1, // jg chrome.xxx
+            0x83, 0x3d, -1, -1, -1, -1, 0x01, // cmp dword ptr ds:[xxx], 1
     };
     const unsigned char PatchTarget[] = {0x7f};
     const unsigned int PatchTargetLen = sizeof(PatchTarget) / sizeof(PatchTarget[0]);
@@ -85,7 +83,7 @@ int crackChrome(const string &path) {
             return -3;
         }
 
-        fseek(target, (long) (searchIdx + 8), SEEK_SET);
+        fseek(target, (long) (searchIdx + 0xb), SEEK_SET);
         if (fwrite(PatchTarget, sizeof(PatchTarget[0]), PatchTargetLen, target) <= 0) {
             showError();
             fclose(target);
